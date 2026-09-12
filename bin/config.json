@@ -47,5 +47,17 @@
     "record": {
         "auto": false,
         "path": "./record"
+    },
+    "hls": {
+        "ffmpeg": "ffmpeg",
+        "path": "./hls",
+        "apps": [],
+        "auto": false,
+        "hlsTime": 2,
+        "hlsListSize": 3,
+        "hlsFlags": "delete_segments",
+        "hlsKeep": false,
+        "vc": "copy",
+        "ac": "copy"
     }
 }

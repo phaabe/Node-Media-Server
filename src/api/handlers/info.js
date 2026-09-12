@@ -38,6 +38,7 @@ class InfoHandler {
           https_port: config.https?.port,
           static_enabled: !!(config.static?.router && config.static?.root),
           record_enabled: !!config.record?.path,
+          hls_enabled: !!config.hls?.path,
           auth_enabled: !!(config.auth?.play || config.auth?.publish)
         },
         uptime: process.uptime(),

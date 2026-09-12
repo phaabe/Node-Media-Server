@@ -67,6 +67,12 @@ class NodeHttpServer {
     // @ts-ignore
     app.all("/:app/:name.flv", this.handleFlv);
 
+    if (Context.config.hls?.path) {
+      // @ts-ignore
+      app.get("/:app/:name/index.m3u8", this.handleHlsPlaylist);
+      // @ts-ignore
+      app.get("/:app/:name/:segment.ts", this.handleHlsSegment);
+    }
 
     if (Context.config.http?.port) {
       this.httpServer = http.createServer(app);
@@ -157,6 +163,39 @@ class NodeHttpServer {
     const session = new FlvSession(req, res);
     session.run();
     Context.sessions.set(session.id, session);
+  };
+
+  /**
+   * Serve the live HLS playlist written to disk by the per-stream ffmpeg process.
+   * @param {Request} req
+   * @param {Response} res
+   */
+  handleHlsPlaylist = (req, res) => {
+    const filePath = path.join(Context.config.hls.path, path.basename(req.params.app), path.basename(req.params.name), "index.m3u8");
+    res.set("Content-Type", "application/vnd.apple.mpegurl");
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        res.status(404).end();
+      }
+    });
+  };
+
+  /**
+   * Serve one HLS media segment written to disk by the per-stream ffmpeg process.
+   * Segments are immutable once written, so they're safe to cache aggressively.
+   * @param {Request} req
+   * @param {Response} res
+   */
+  handleHlsSegment = (req, res) => {
+    const filePath = path.join(Context.config.hls.path, path.basename(req.params.app), path.basename(req.params.name), `${path.basename(req.params.segment)}.ts`);
+    res.set("Content-Type", "video/mp2t");
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        res.status(404).end();
+      }
+    });
   };
 }
 

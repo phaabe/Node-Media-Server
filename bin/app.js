@@ -29,6 +29,9 @@ Options:
       --data-path <path> Runtime data directory, overrides store.path
       --record-path <p>  Record output directory, overrides record.path
       --record-auto      Enable auto recording, forces record.auto on
+      --hls-path <p>     HLS output directory, overrides hls.path
+      --hls-ffmpeg <p>   Path to the ffmpeg binary, overrides hls.ffmpeg
+      --hls-auto         Enable auto HLS transmuxing, forces hls.auto on
       --notify-url <url> Event webhook URL, overrides notify.url
       --auth-play        Enable play authentication, forces auth.play on
       --auth-publish     Enable publish authentication, forces auth.publish on
@@ -67,6 +70,9 @@ try {
       "data-path": { type: "string" },
       "record-path": { type: "string" },
       "record-auto": { type: "boolean" },
+      "hls-path": { type: "string" },
+      "hls-ffmpeg": { type: "string" },
+      "hls-auto": { type: "boolean" },
       "notify-url": { type: "string" },
       "auth-play": { type: "boolean" },
       "auth-publish": { type: "boolean" },
@@ -216,6 +222,18 @@ if (cli["record-auto"]) {
   config.record = config.record ?? {};
   config.record.auto = true;
 }
+if (cli["hls-path"]) {
+  config.hls = config.hls ?? {};
+  config.hls.path = path.resolve(cli["hls-path"]);
+}
+if (cli["hls-ffmpeg"]) {
+  config.hls = config.hls ?? {};
+  config.hls.ffmpeg = cli["hls-ffmpeg"];
+}
+if (cli["hls-auto"]) {
+  config.hls = config.hls ?? {};
+  config.hls.auto = true;
+}
 if (cli["notify-url"]) {
   config.notify = config.notify ?? {};
   config.notify.url = cli["notify-url"];
@@ -244,6 +262,9 @@ if (config.store?.path) {
 }
 if (config.record?.path) {
   config.record.path = path.resolve(configDir, config.record.path);
+}
+if (config.hls?.path) {
+  config.hls.path = path.resolve(configDir, config.hls.path);
 }
 
 if (config.rtmps?.key && !fs.existsSync(config.rtmps.key)) {

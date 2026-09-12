@@ -18,6 +18,7 @@ const BASE_CONFIG = {
   notify: { url: "" },
   store: { path: "./data", maxHistory: 10000 },
   record: { path: "./record" },
+  hls: { ffmpeg: "ffmpeg", path: "./hls", apps: [], auto: false, hlsTime: 2, hlsListSize: 3, hlsFlags: "delete_segments", hlsKeep: false, vc: "copy", ac: "copy" },
   auth: { play: false, publish: false, secret: "s3cret" },
   rtmp: { port: 1935 },
   rtmps: { port: 1936, key: "./key.pem", cert: "./cert.pem" },
@@ -143,12 +144,48 @@ test("PUT rejects invalid notify URLs", () => {
 test("PUT rejects empty or wrong-type storage paths", () => {
   reset();
   for (const bad of ["", "   ", 42, null]) {
-    for (const section of ["store", "record"]) {
+    for (const section of ["store", "record", "hls"]) {
       const res = put({ [section]: { path: bad } });
       assert.equal(res.statusCode, 400, `${section}.path ${bad} should be rejected`);
     }
   }
   assert.equal(Context.config.store.path, "./data");
+});
+
+test("PUT validates HLS-specific fields", () => {
+  reset();
+  for (const ffmpeg of ["", "   ", 42, null]) {
+    const res = put({ hls: { ffmpeg } });
+    assert.equal(res.statusCode, 400, `hls.ffmpeg ${JSON.stringify(ffmpeg)} should be rejected`);
+  }
+  for (const apps of ["live", 42, [1, 2], null]) {
+    const res = put({ hls: { apps } });
+    assert.equal(res.statusCode, 400, `hls.apps ${JSON.stringify(apps)} should be rejected`);
+  }
+  const okApps = put({ hls: { apps: ["live", "vod"] } });
+  assert.equal(okApps.statusCode, 200);
+  assert.deepEqual(Context.config.hls.apps, ["live", "vod"]);
+
+  for (const auto of ["true", 1, null]) {
+    const res = put({ hls: { auto } });
+    assert.equal(res.statusCode, 400, `hls.auto ${JSON.stringify(auto)} should be rejected`);
+  }
+  for (const hlsTime of [0, -1, 61, 1.5, "2", null]) {
+    const res = put({ hls: { hlsTime } });
+    assert.equal(res.statusCode, 400, `hls.hlsTime ${JSON.stringify(hlsTime)} should be rejected`);
+  }
+  for (const hlsListSize of [0, -1, 101, 1.5, "3", null]) {
+    const res = put({ hls: { hlsListSize } });
+    assert.equal(res.statusCode, 400, `hls.hlsListSize ${JSON.stringify(hlsListSize)} should be rejected`);
+  }
+  for (const vc of ["", "   ", 42, null]) {
+    const res = put({ hls: { vc } });
+    assert.equal(res.statusCode, 400, `hls.vc ${JSON.stringify(vc)} should be rejected`);
+  }
+  const okScalars = put({ hls: { hlsTime: 4, hlsListSize: 6, hlsFlags: "append_list", hlsKeep: true, vc: "libx264", ac: "aac" } });
+  assert.equal(okScalars.statusCode, 200);
+  assert.equal(Context.config.hls.hlsTime, 4);
+  assert.equal(Context.config.hls.hlsKeep, true);
 });
 
 test("PUT rejects invalid maxHistory", () => {

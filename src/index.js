@@ -12,6 +12,7 @@ const BaseSession = require("./session/base_session.js");
 const NodeHttpServer = require("./server/http_server.js");
 const NodeRtmpServer = require("./server/rtmp_server.js");
 const NodeRecordServer = require("./server/record_server.js");
+const NodeHlsServer = require("./server/hls_server.js");
 const NodeNotifyServer = require("./server/notify_server.js");
 const NodeHistoryServer = require("./server/history_server.js");
 const NodeRelayServer = require("./server/relay_server.js");
@@ -36,6 +37,7 @@ class NodeMediaServer {
     this.httpServer = new NodeHttpServer();
     this.rtmpServer = new NodeRtmpServer();
     this.recordServer = new NodeRecordServer();
+    this.hlsServer = new NodeHlsServer();
     this.notifyServer = new NodeNotifyServer();
     this.historyServer = new NodeHistoryServer();
     this.relayServer = new NodeRelayServer();
@@ -54,9 +56,10 @@ class NodeMediaServer {
     });
     Context.store = this.store;
 
-    // Expose relay/record managers to context for API access
+    // Expose relay/record/hls managers to context for API access
     Context.relayServer = this.relayServer;
     Context.recordServer = this.recordServer;
+    Context.hlsServer = this.hlsServer;
 
     // Sliding-window inBps/outBps for /streams and /stats
     rateSampler.start();
@@ -77,6 +80,7 @@ class NodeMediaServer {
     this.httpServer.run();
     this.rtmpServer.run();
     this.notifyServer.run();
+    this.hlsServer.run(); // no store dependency, runs outside the store try-block
     try {
       await this.store.open();
       this.recordServer.run();
@@ -101,6 +105,7 @@ class NodeMediaServer {
     rateSampler.stop();
     this.relayServer.stop();
     this.recordServer.stop();
+    this.hlsServer.stop();
     this.rtmpServer.stop();
     this.httpServer.stop();
     this.notifyServer.stop();

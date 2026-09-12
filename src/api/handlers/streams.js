@@ -100,7 +100,8 @@ function buildStreamEntry(key, broadcast) {
     outBytes,
     inBps: rates.inBps,
     outBps: rates.outBps,
-    recording: Context.recordServer?.isRecording(key) ?? false
+    recording: Context.recordServer?.isRecording(key) ?? false,
+    hls: Context.hlsServer?.isTransmuxing(key) ?? false
   };
 }
 
@@ -219,6 +220,13 @@ class StreamsHandler {
         urls.push({ protocol: "https-flv", url: `https://${host}${portSuffix(httpsPort, 443)}${streamPath}.flv${query}` });
         urls.push({ protocol: "wss-flv", url: `wss://${host}${portSuffix(httpsPort, 443)}${streamPath}.flv${query}` });
       }
+      // HLS routes don't check signed play URLs, unlike the FLV/RTMP outputs above.
+      if (Context.config.hls?.path && httpPort) {
+        urls.push({ protocol: "hls", url: `http://${host}${portSuffix(httpPort, 80)}${streamPath}/index.m3u8` });
+      }
+      if (Context.config.hls?.path && httpsPort) {
+        urls.push({ protocol: "hls", url: `https://${host}${portSuffix(httpsPort, 443)}${streamPath}/index.m3u8` });
+      }
 
       const broadcast = Context.broadcasts.get(streamPath);
       res.json({
@@ -316,6 +324,81 @@ class StreamsHandler {
       success: true,
       data: {},
       message: "Recording stopped"
+    });
+  }
+
+  /**
+   * Manually start HLS transmuxing for a publishing stream
+   * POST /api/v1/streams/:app/:name/hls
+   * @param {Request} req
+   * @param {Response} res
+   */
+  static startHls(req, res) {
+    const streamPath = `/${req.params.app}/${req.params.name}`;
+    const result = Context.hlsServer?.startHls(streamPath);
+    if (!result?.ok) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: result?.error ?? "Hls server is not available"
+      });
+    }
+    res.json({
+      success: true,
+      data: { hlsId: result.hlsId, playlistPath: result.playlistPath },
+      message: "HLS transmuxing started"
+    });
+  }
+
+  /**
+   * Get the HLS transmuxing status of a stream
+   * GET /api/v1/streams/:app/:name/hls
+   * @param {Request} req
+   * @param {Response} res
+   */
+  static getHls(req, res) {
+    const streamPath = `/${req.params.app}/${req.params.name}`;
+    const hlsServer = Context.hlsServer;
+    if (!hlsServer) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "Hls server is not available"
+      });
+    }
+    const session = hlsServer.getActiveSession(streamPath);
+    res.json({
+      success: true,
+      data: {
+        transmuxing: !!session,
+        hlsId: session?.id,
+        playlistPath: session?.playlistPath,
+        startTime: session?.createTime
+      },
+      message: session ? "HLS transmuxing in progress" : "No active HLS transmuxing"
+    });
+  }
+
+  /**
+   * Manually stop the active HLS transmuxing of a stream
+   * DELETE /api/v1/streams/:app/:name/hls
+   * @param {Request} req
+   * @param {Response} res
+   */
+  static stopHls(req, res) {
+    const streamPath = `/${req.params.app}/${req.params.name}`;
+    const result = Context.hlsServer?.stopHls(streamPath);
+    if (!result?.ok) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: result?.error ?? "Hls server is not available"
+      });
+    }
+    res.json({
+      success: true,
+      data: {},
+      message: "HLS transmuxing stopped"
     });
   }
 }

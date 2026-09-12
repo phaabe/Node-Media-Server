@@ -79,6 +79,11 @@ Node-Media-Server 是一个高性能的 Node.js 实时流媒体服务器，支�
 - 支持多种录制格式
 - 自动分段录制
 
+**NodeHlsServer (`src/server/hls_server.js`)**
+- HLS 直播输出，通过外部 ffmpeg 进程实现
+- 推流成功后，ffmpeg 通过本地环回 RTMP 连接拉取该流并转封装为 `.m3u8`/`.ts`
+- 生成的播放列表和分片由 `NodeHttpServer` 直接从磁盘提供服务
+
 **NodeNotifyServer (`src/server/notify_server.js`)**
 - 推送通知系统
 - 支持HTTP回调

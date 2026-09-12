@@ -34,6 +34,9 @@ Options:
       --data-path <path> Runtime data directory, overrides store.path
       --record-path <p>  Record output directory, overrides record.path
       --record-auto      Enable auto recording, forces record.auto on
+      --hls-path <p>     HLS output directory, overrides hls.path
+      --hls-ffmpeg <p>   Path to the ffmpeg binary, overrides hls.ffmpeg
+      --hls-auto         Enable auto HLS transmuxing, forces hls.auto on
       --notify-url <url> Event webhook URL, overrides notify.url
       --auth-play        Enable play authentication, forces auth.play on
       --auth-publish     Enable publish authentication, forces auth.publish on
@@ -72,6 +75,7 @@ never written back to the config file.
 * History Search by stream path, IP and time range (New in v4.3.0)
 * Network Bandwidth Statistics (New in v4.3.0)
 * Graceful Shutdown (New in v4.3.0)
+* HLS output via an external ffmpeg process, with manual start/stop API (New in v4.5.0)
 
 ## Static file services
 Node-Media-Server can provide static file services for a directory.
@@ -100,6 +104,35 @@ Set `"auto": false` to disable auto-recording of every published stream; streams
 http://server_ip:8000/record/live/stream/unix_time.flv
 or
 https://server_ip:8443/record/live/stream/unix_time.flv
+```
+
+## HLS output (New in v4.5.0)
+Node-Media-Server can output live HLS by spawning an external `ffmpeg` process per stream: on publish, ffmpeg pulls the just-published stream back in over a loopback RTMP connection and remuxes it into a live playlist and `.ts` segments, which are then served over HTTP/HTTPS. This requires `rtmp.port` to be configured and a working `ffmpeg` binary on the host (either on `PATH` or an explicit path in `hls.ffmpeg`).
+
+```
+"hls": {
+    "ffmpeg": "ffmpeg",
+    "path": "./hls",
+    "apps": ["live"],
+    "auto": true,
+    "hlsTime": 2,
+    "hlsListSize": 3,
+    "hlsFlags": "delete_segments",
+    "hlsKeep": false,
+    "vc": "copy",
+    "ac": "copy"
+}
+```
+
+- `apps` is an allow-list of RTMP app names to auto-transmux; leave it empty to allow every app.
+- Set `"auto": false` to disable auto-transmuxing of every publish; streams can then be transmuxed on demand via `POST /api/v1/streams/{app}/{name}/hls`.
+- `vc`/`ac` default to `copy` (passthrough remux, no transcoding); set them (e.g. `"ac": "aac"`) along with `vcParam`/`acParam` to transcode instead.
+- The per-stream output directory is deleted once the stream stops publishing, unless `hlsKeep` is set.
+
+```
+http://server_ip:8000/live/stream/index.m3u8
+or
+https://server_ip:8443/live/stream/index.m3u8
 ```
 
 ## REST API System (New in v4.2.0)

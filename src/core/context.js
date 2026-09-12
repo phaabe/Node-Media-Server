@@ -20,6 +20,10 @@ const EventEmitter = require("node:events");
  */
 
 /**
+ * @typedef {import("../server/hls_server.js")} NodeHlsServer
+ */
+
+/**
  * @typedef {import("../server/broadcast_server.js")} BroadcastServer
  */
 
@@ -65,6 +69,24 @@ const EventEmitter = require("node:events");
  */
 
 /**
+ * @typedef {object} HlsConfig - HLS output via an external ffmpeg process per stream.
+ * Requires rtmp.port to be configured: ffmpeg pulls the just-published stream back
+ * in over a loopback RTMP connection and muxes it into HLS itself.
+ * @property {string} [ffmpeg] - Path to the ffmpeg binary, or a bare command name resolved via PATH
+ * @property {string} [path] - Directory root for generated .m3u8/.ts files; required to enable HLS
+ * @property {Array<string>} [apps] - RTMP app allow-list to auto-transmux (e.g. ["live"]); empty/absent allows every app
+ * @property {boolean} [auto] - Auto-start HLS for allow-listed apps on publish; default true
+ * @property {number} [hlsTime] - Target segment duration in seconds; default 2
+ * @property {number} [hlsListSize] - Live playlist segment count; default 3
+ * @property {string} [hlsFlags] - Value for ffmpeg's -hls_flags; default "delete_segments"
+ * @property {boolean} [hlsKeep] - Keep the per-stream output directory after donePublish instead of deleting it; default false
+ * @property {string} [vc] - Video codec for -c:v; default "copy"
+ * @property {Array<string>} [vcParam] - Extra ffmpeg args inserted after -c:v
+ * @property {string} [ac] - Audio codec for -c:a; default "copy"
+ * @property {Array<string>} [acParam] - Extra ffmpeg args inserted after -c:a
+ */
+
+/**
  * @typedef {object} StoreConfig - Persistent JSON store options
  * @property {string} [path] - Store directory, default "./data"
  * @property {number} [flushInterval] - Ms between disk flushes
@@ -94,6 +116,7 @@ const EventEmitter = require("node:events");
  * @property {{port?: number}} [http] - HTTP-FLV / WS-FLV listener
  * @property {TlsConfig} [https] - HTTPS-FLV / WSS-FLV listener
  * @property {RecordConfig} [record] - FLV recording
+ * @property {HlsConfig} [hls] - HLS output via an external ffmpeg process
  * @property {StoreConfig} [store] - Persistent JSON store
  * @property {StaticConfig} [static] - Static file serving over HTTP
  * @property {WebadminConfig} [webadmin] - Bundled webadmin console at /admin
@@ -149,6 +172,13 @@ const Context = {
    * @type {NodeRecordServer | null}
    */
   recordServer: null,
+
+  /**
+   * HLS output manager, exposed for API access (manual start/stop HLS).
+   * Assigned by the NodeMediaServer constructor.
+   * @type {NodeHlsServer | null}
+   */
+  hlsServer: null,
 
   /**
    * Cumulative streaming network traffic (bytes) over the process lifetime.

@@ -113,6 +113,9 @@ Validates the old password against the configured user, then updates `auth.jwt.u
 | GET      | /api/v1/streams/:app/:name/record | Query the recording status of a stream | Yes  |
 | POST     | /api/v1/streams/:app/:name/record | Manually start recording a stream   | Yes  |
 | DELETE   | /api/v1/streams/:app/:name/record | Manually stop recording a stream    | Yes  |
+| GET      | /api/v1/streams/:app/:name/hls | Query the HLS transmuxing status of a stream | Yes  |
+| POST     | /api/v1/streams/:app/:name/hls | Manually start HLS transmuxing for a stream | Yes  |
+| DELETE   | /api/v1/streams/:app/:name/hls | Manually stop HLS transmuxing for a stream | Yes  |
 | GET      | /api/v1/sessions          | List all connected sessions                   | Yes  |
 | DELETE   | /api/v1/sessions/:id      | Terminate a specific session                  | Yes  |
 | GET      | /api/v1/stats             | Real-time server performance statistics       | Yes  |
@@ -153,7 +156,7 @@ Returns the server health status and version.
 GET /api/v1/info
 ```
 
-Returns server metadata, an overview of the active configuration (ports, static/record/auth switches), and uptime.
+Returns server metadata, an overview of the active configuration (ports, static/record/hls/auth switches), and uptime.
 
 ```json
 {
@@ -174,6 +177,7 @@ Returns server metadata, an overview of the active configuration (ports, static/
       "https_port": 8443,
       "static_enabled": false,
       "record_enabled": false,
+      "hls_enabled": false,
       "auth_enabled": false
     },
     "uptime": 3600,
@@ -293,6 +297,28 @@ GET /api/v1/streams/{app}/{name}/record
 ```
 
 Query whether the stream currently has an active recording session. Response `data` is `{ recording, recordId, filePath, startTime }` — when not recording, `recording` is `false` and the other fields are omitted. Fails with 400 if the record server is not available. For historical (finalized) recordings use the records endpoints below.
+
+### Manual HLS Transmuxing
+
+```bash
+POST /api/v1/streams/{app}/{name}/hls
+```
+
+Manually start HLS transmuxing for a publishing stream (spawns an ffmpeg process that pulls the stream back in over loopback RTMP). Fails with 400 if the HLS path is not configured/writable, the stream has no publisher, or it is already transmuxing. Response `data` is `{ hlsId, playlistPath }`.
+
+With `hls.auto: false` in the config, published streams are not transmuxed automatically and this endpoint is the only way to start HLS — combine it with the DELETE endpoint for full manual control. Toggling `hls.auto` takes effect immediately.
+
+```bash
+DELETE /api/v1/streams/{app}/{name}/hls
+```
+
+Manually stop the active HLS transmuxing of a stream; the ffmpeg process is terminated and its output directory removed unless `hls.hlsKeep` is set. Fails with 400 if the stream is not transmuxing.
+
+```bash
+GET /api/v1/streams/{app}/{name}/hls
+```
+
+Query whether the stream currently has an active HLS session. Response `data` is `{ transmuxing, hlsId, playlistPath, startTime }` — when not transmuxing, `transmuxing` is `false` and the other fields are omitted. Fails with 400 if the HLS server is not available.
 
 ### Session Management
 

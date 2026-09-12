@@ -47,6 +47,9 @@ class ApiRouter {
     this.router.get("/streams/:app/:name/record", StreamsHandler.getRecord);
     this.router.post("/streams/:app/:name/record", StreamsHandler.startRecord);
     this.router.delete("/streams/:app/:name/record", StreamsHandler.stopRecord);
+    this.router.get("/streams/:app/:name/hls", StreamsHandler.getHls);
+    this.router.post("/streams/:app/:name/hls", StreamsHandler.startHls);
+    this.router.delete("/streams/:app/:name/hls", StreamsHandler.stopHls);
 
     // Session management endpoints
     this.router.get("/sessions", SessionsHandler.getSessions);

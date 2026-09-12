@@ -21,6 +21,16 @@ const EDITABLE_PATHS = [
   ["store", "maxHistory"],
   ["record", "path"],
   ["record", "auto"],
+  ["hls", "ffmpeg"],
+  ["hls", "path"],
+  ["hls", "apps"],
+  ["hls", "auto"],
+  ["hls", "hlsTime"],
+  ["hls", "hlsListSize"],
+  ["hls", "hlsFlags"],
+  ["hls", "hlsKeep"],
+  ["hls", "vc"],
+  ["hls", "ac"],
   ["auth", "play"],
   ["auth", "publish"],
   ["auth", "secret"],
@@ -62,6 +72,26 @@ const FIELD_VALIDATORS = {
     typeof v === "string" && v.trim() !== "" ? null : `${p} must be a non-empty path`,
   "record.auto": (v, p) =>
     typeof v === "boolean" ? null : `${p} must be a boolean (false = record manually only)`,
+  "hls.ffmpeg": (v, p) =>
+    typeof v === "string" && v.trim() !== "" ? null : `${p} must be a non-empty path or command name`,
+  "hls.path": (v, p) =>
+    typeof v === "string" && v.trim() !== "" ? null : `${p} must be a non-empty path`,
+  "hls.apps": (v, p) =>
+    Array.isArray(v) && v.every(a => typeof a === "string") ? null : `${p} must be an array of app name strings`,
+  "hls.auto": (v, p) =>
+    typeof v === "boolean" ? null : `${p} must be a boolean (false = HLS manually only)`,
+  "hls.hlsTime": (v, p) =>
+    Number.isInteger(v) && v >= 1 && v <= 60 ? null : `${p} must be an integer between 1 and 60`,
+  "hls.hlsListSize": (v, p) =>
+    Number.isInteger(v) && v >= 1 && v <= 100 ? null : `${p} must be an integer between 1 and 100`,
+  "hls.hlsFlags": (v, p) =>
+    typeof v === "string" ? null : `${p} must be a string`,
+  "hls.hlsKeep": (v, p) =>
+    typeof v === "boolean" ? null : `${p} must be a boolean`,
+  "hls.vc": (v, p) =>
+    typeof v === "string" && v.trim() !== "" ? null : `${p} must be a non-empty codec name`,
+  "hls.ac": (v, p) =>
+    typeof v === "string" && v.trim() !== "" ? null : `${p} must be a non-empty codec name`,
   "store.maxHistory": (v, p) =>
     Number.isInteger(v) && v >= 1 && v <= 100000000 ? null : `${p} must be an integer between 1 and 100000000`,
   "auth.play": v => (typeof v === "boolean" ? null : "auth.play must be a boolean"),
